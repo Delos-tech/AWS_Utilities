@@ -50,6 +50,9 @@ def main(current_stage):
 if __name__ == "__main__":
     print('CREATE AND UPLOAD')
     pr_destination_branch = os.environ.get('TRAVIS_BRANCH')
+    if pr_destination_branch == "main":
+        print('Branch is main, setting stage to prod')
+        pr_destination_branch = "prod"
     if pr_destination_branch is None:
         print('Could not find the branch')
         sys.exit(1)
