@@ -9,6 +9,36 @@ from zipfile import ZipFile
 import boto3
 
 
+def upload_to_s3(filename_to_upload, bucket, s3_conn):
+    print(f'uploading {filename_to_upload} to {bucket}')
+    with open(filename_to_upload, 'rb') as z:
+        response = s3_conn.put_object(Body=z, Bucket=bucket, Key=filename_to_upload)
+        print(f'Upload response: {response}')
+    return response
+
+
+def zip_files(filenames, zip_file_name):
+    print(f'final filename: {zip_file_name}')
+    with ZipFile(zip_file_name, 'w') as z:
+        for filename in filenames:
+            print(f'writing file: {filename}')
+            z.write(filename)
+    print('wrote the file')
+    return
+
+
+def handle_dags(current_stage, filename, config):
+    print(f'DAG processing for {filename}')
+    actual_filename = f'{current_stage}_{filename}.zip'
+    with open('dag_config.json') as f:
+        json.dump({'code_stage': current_stage}, f)
+
+    print(f'Final filename: {actual_filename}, creating ZIP')
+    filenames = config[filename]["files"]
+    filenames.append('dag_config.json')
+    zip_files(filenames, actual_filename)
+
+
 def main(current_stage):
     aws_credentials = {
         'aws_access_key_id': os.environ.get('AWS_ACCESS_KEY_ID'),
@@ -22,29 +52,35 @@ def main(current_stage):
         zip_configs = json.load(f)
 
     for zip_file_name in zip_configs:
-        actual_filename = zip_configs[zip_file_name]["files"]
-        if zip_configs[zip_file_name]["zip"]:
-            print(f'Zipping on {zip_file_name}')
-            actual_filename = f'{zip_file_name}_{current_stage}_travis_{build_number}.zip'
-            print(f'Final zip filename is {actual_filename}')
-            with ZipFile(actual_filename, 'w') as z:
-                for filename in zip_configs[zip_file_name]["files"]:
-                    z.write(filename)
-        print('Wrote zipfile, checking upload')
-        if zip_configs[zip_file_name]["s3_upload"]:
+        if 'dag' in zip_configs[zip_file_name]:
+            print(f'{zip_file_name} contains info about a dag')
+            handle_dags(current_stage, zip_file_name, zip_configs[zip_file_name])
+        else:
+            actual_filename = zip_configs[zip_file_name]["files"]
             if zip_configs[zip_file_name]["zip"]:
-                keys = [actual_filename]
-                print(f'zip is true, keys: {keys}')
-            else:
-                keys = actual_filename
-                print(f'zip is false, key: {keys}')
-            for Key in keys:
-                print(f'writing {Key}')
-                Bucket = zip_configs[zip_file_name]["s3"]
-                print('Uploading files to S3')
-                with open(Key, 'rb') as z:
-                    response = s3.put_object(Body=z, Bucket=Bucket, Key=Key)
-                print(f'Upload complete, {response}')
+                print(f'Zipping on {zip_file_name}')
+                actual_filename = f'{zip_file_name}_{current_stage}_travis_{build_number}.zip'
+                print(f'Final zip filename is {actual_filename}')
+                zip_file_name(zip_configs[zip_file_name]["files"], actual_filename)
+                # with ZipFile(actual_filename, 'w') as z:
+                #     for filename in zip_configs[zip_file_name]["files"]:
+                #         z.write(filename)
+            print('Wrote zipfile, checking upload')
+            if zip_configs[zip_file_name]["s3_upload"]:
+                if zip_configs[zip_file_name]["zip"]:
+                    keys = [actual_filename]
+                    print(f'zip is true, keys: {keys}')
+                else:
+                    keys = actual_filename
+                    print(f'zip is false, key: {keys}')
+                for Key in keys:
+                    print(f'writing {Key}')
+                    Bucket = zip_configs[zip_file_name]["s3"]
+                    print('Uploading files to S3')
+                    upload_to_s3(Key, Bucket, s3)
+                    # with open(Key, 'rb') as z:
+                    #     response = s3.put_object(Body=z, Bucket=Bucket, Key=Key)
+                    # print(f'Upload complete, {response}')
 
 
 if __name__ == "__main__":
