@@ -53,7 +53,11 @@ def main(current_stage):
     with open('zip_configs.json', 'r') as f:
         zip_configs = json.load(f)
 
+    print(zip_configs)
+
     for zip_file_name in zip_configs:
+        print('Working on: \n')
+        print(zip_configs[zip_file_name])
         if 'dag' in zip_configs[zip_file_name]:
             print(f'{zip_file_name} contains info about a dag')
             actual_filename = handle_dags(current_stage, zip_file_name, zip_configs[zip_file_name])
