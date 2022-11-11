@@ -31,8 +31,10 @@ def handle_dags(current_stage, filename, config):
     print(f'DAG processing for {filename}')
     actual_filename = f'{current_stage}_{filename}.zip'
     current_build_number = os.environ.get('TRAVIS_BUILD_NUMBER')
-    with open('dag_config.json') as f:
-        json.dump({'code_stage': current_stage, 'build_number': current_build_number}, f)
+    data_to_write = {'code_stage': current_stage, 'build_number': current_build_number}
+    print(f'dag_config.json: {data_to_write}')
+    with open('dag_config.json', 'w') as f:
+        json.dump(data_to_write, f)
 
     print(f'Final filename: {actual_filename}, creating ZIP')
     filenames = config[filename]["files"]
