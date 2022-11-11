@@ -9,10 +9,10 @@ from zipfile import ZipFile
 import boto3
 
 
-def upload_to_s3(filename_to_upload, bucket, s3_conn):
+def upload_to_s3(filename_to_upload, bucket, s3_conn, key=None):
     print(f'uploading {filename_to_upload} to {bucket}')
     with open(filename_to_upload, 'rb') as z:
-        response = s3_conn.put_object(Body=z, Bucket=bucket, Key=filename_to_upload)
+        response = s3_conn.put_object(Body=z, Bucket=bucket, Key=filename_to_upload if key is None else key)
         print(f'Upload response: {response}')
     return response
 
@@ -38,6 +38,7 @@ def handle_dags(current_stage, filename, config):
     filenames = config[filename]["files"]
     filenames.append('dag_config.json')
     zip_files(filenames, actual_filename)
+    return actual_filename
 
 
 def main(current_stage):
@@ -55,7 +56,13 @@ def main(current_stage):
     for zip_file_name in zip_configs:
         if 'dag' in zip_configs[zip_file_name]:
             print(f'{zip_file_name} contains info about a dag')
-            handle_dags(current_stage, zip_file_name, zip_configs[zip_file_name])
+            actual_filename = handle_dags(current_stage, zip_file_name, zip_configs[zip_file_name])
+            print(f'files have been zipped to {actual_filename}, uploading to S3')
+            upload_folder = zip_configs[zip_file_name]['dag_folder']
+            key = f'{upload_folder}/{actual_filename}'
+            bucket = zip_configs[zip_file_name]["s3"]
+            print(f'Bucket: {bucket}, key: {key}')
+            upload_to_s3(actual_filename, bucket, s3, key)
         else:
             actual_filename = zip_configs[zip_file_name]["files"]
             if zip_configs[zip_file_name]["zip"]:
