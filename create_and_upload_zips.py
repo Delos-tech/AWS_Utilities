@@ -56,7 +56,7 @@ def main(current_stage):
     print(zip_configs)
 
     for zip_file_name in zip_configs:
-        print('Working on: \n')
+        print(f'Working on: {zip_file_name}\n')
         print(zip_configs[zip_file_name])
         if 'dag' in zip_configs[zip_file_name]:
             print(f'{zip_file_name} contains info about a dag')
@@ -73,7 +73,7 @@ def main(current_stage):
                 print(f'Zipping on {zip_file_name}')
                 actual_filename = f'{zip_file_name}_{current_stage}_travis_{build_number}.zip'
                 print(f'Final zip filename is {actual_filename}')
-                zip_file_name(zip_configs[zip_file_name]["files"], actual_filename)
+                zip_files(zip_configs[zip_file_name]["files"], actual_filename)
                 # with ZipFile(actual_filename, 'w') as z:
                 #     for filename in zip_configs[zip_file_name]["files"]:
                 #         z.write(filename)
