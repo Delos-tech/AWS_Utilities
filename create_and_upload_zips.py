@@ -37,7 +37,7 @@ def handle_dags(current_stage, filename, config):
         json.dump(data_to_write, f)
 
     print(f'Final filename: {actual_filename}, creating ZIP')
-    filenames = config[filename]["files"]
+    filenames = config["files"]
     filenames.append('dag_config.json')
     zip_files(filenames, actual_filename)
     return actual_filename
